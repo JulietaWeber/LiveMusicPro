@@ -14,11 +14,17 @@ Aplicación para centralizar la gestión de artistas, álbumes y conciertos de *
 - Capa de base de datos separada de la interfaz.
 - Datos iniciales idempotentes, sin duplicados al reiniciar.
 - Pruebas automatizadas de las operaciones principales.
+- Dataset CSV propio de 15 álbumes, con años de lanzamiento repetidos.
+- Importación del CSV con `pandas.read_csv()` y el alta existente de álbumes.
+- Vista de estadísticas calculada con Pandas sobre la base SQLite.
+- Media, mediana, moda e interpretación de los años de lanzamiento.
 
 ## Estructura
 
 ```text
 app.py                 Interfaz Streamlit
+data/
+  albumes.csv          Dataset propio de 15 registros
 database/
   conexion.py          Conexión, tablas y datos iniciales
   artistas_db.py       CRUD y filtros de artistas
@@ -29,6 +35,7 @@ models/
   album.py             Clase Album
   concierto.py         Clase Concierto
 utils/
+  analisis_datos.py    Importación CSV y medidas de tendencia central
   validaciones.py      Validaciones reutilizables
 pruebas.py             Pruebas funcionales
 requirements.txt       Dependencias
@@ -43,6 +50,18 @@ python -m streamlit run app.py
 ```
 
 La aplicación crea las tablas y carga los artistas iniciales automáticamente cuando la base está vacía.
+
+## Actividad de Estadística y Datos
+
+1. Abrí **Álbumes > Importar CSV** para previsualizar los 15 registros.
+2. Presioná **Importar dataset a la base**. La carga recorre el DataFrame y usa
+   `agregar_album()` para cada fila nueva; las repeticiones exactas se omiten.
+3. Verificá los registros en **Álbumes > Listar y filtrar**.
+4. Abrí **Estadísticas** para ver la media, mediana y moda de
+   `anio_lanzamiento`, junto con una interpretación automática.
+
+La vista estadística usa `pandas.read_sql_query()` para analizar los datos que
+realmente están almacenados en SQLite.
 
 ## Pruebas
 

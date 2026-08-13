@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 
@@ -13,7 +14,7 @@ def conectar():
 
 
 def crear_tablas():
-    with conectar() as conexion:
+    with closing(conectar()) as conexion, conexion:
         conexion.executescript(
             """
             CREATE TABLE IF NOT EXISTS artistas (
@@ -46,7 +47,7 @@ def crear_tablas():
 
 
 def insertar_datos_iniciales():
-    with conectar() as conexion:
+    with closing(conectar()) as conexion, conexion:
         cantidad = conexion.execute("SELECT COUNT(*) FROM artistas").fetchone()[0]
         if cantidad:
             return

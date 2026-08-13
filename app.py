@@ -29,6 +29,13 @@ from database.conexion import inicializar_base_de_datos
 from models.album import Album
 from models.artista import Artista
 from models.concierto import Concierto
+from utils.analisis_datos import (
+    calcular_tendencia_central,
+    importar_albumes_desde_csv,
+    interpretar_tendencia_central,
+    leer_albumes_desde_base,
+    leer_dataset_albumes,
+)
 
 
 st.set_page_config(page_title="Live Music Pro", page_icon="🎵", layout="wide")
@@ -193,8 +200,14 @@ def pagina_artistas():
 
 def pagina_albumes():
     st.title("Gestión de álbumes")
-    listar, agregar, modificar, borrar = st.tabs(
-        ["Listar y filtrar", "Agregar", "Modificar", "Eliminar"]
+    listar, agregar, modificar, borrar, importar = st.tabs(
+        [
+            "Listar y filtrar",
+            "Agregar",
+            "Modificar",
+            "Eliminar",
+            "Importar CSV",
+        ]
     )
 
     with listar:
@@ -275,6 +288,29 @@ def pagina_albumes():
                 st.rerun()
         else:
             st.info("No hay álbumes para eliminar.")
+
+    with importar:
+        st.subheader("Dataset propio de álbumes")
+        st.write(
+            "El archivo contiene 15 registros ficticios y razonables. Sus "
+            "columnas coinciden con la entidad álbum y el año de lanzamiento "
+            "es la variable numérica que se analizará."
+        )
+        try:
+            dataset = leer_dataset_albumes()
+            st.dataframe(dataset, width="stretch", hide_index=True)
+            if st.button("Importar dataset a la base", type="primary"):
+                resultado = importar_albumes_desde_csv()
+                st.success(
+                    f"Importación terminada: {resultado['importados']} álbumes "
+                    f"cargados y {resultado['omitidos']} duplicados omitidos."
+                )
+                st.info(
+                    "Los registros ya se pueden verificar en la pestaña "
+                    "'Listar y filtrar' y analizar en 'Estadísticas'."
+                )
+        except (ValueError, sqlite3.IntegrityError) as error:
+            st.error(f"No se pudo importar el dataset: {error}")
 
 
 def pagina_conciertos():
@@ -370,8 +406,38 @@ def pagina_conciertos():
             st.info("No hay conciertos para eliminar.")
 
 
+def pagina_estadisticas():
+    st.title("Estadísticas")
+    st.subheader("Tendencia central de los años de lanzamiento")
+    st.write(
+        "El análisis se calcula con Pandas sobre los álbumes que están cargados "
+        "en la base de datos SQLite."
+    )
+
+    datos = leer_albumes_desde_base()
+    if datos.empty:
+        st.info(
+            "Todavía no hay álbumes para analizar. Importá el dataset desde la "
+            "sección Álbumes."
+        )
+        return
+
+    resultados = calcular_tendencia_central(datos)
+    modas = ", ".join(str(valor) for valor in resultados["modas"])
+    columnas = st.columns(3)
+    columnas[0].metric("Media", f"{resultados['media']:.2f}")
+    columnas[1].metric("Mediana", f"{resultados['mediana']:.2f}")
+    columnas[2].metric("Moda", modas)
+
+    st.caption(f"Cantidad de álbumes analizados: {resultados['cantidad']}")
+    st.markdown("**Interpretación**")
+    st.write(interpretar_tendencia_central(resultados))
+    with st.expander("Ver datos analizados"):
+        st.dataframe(datos, width="stretch", hide_index=True)
+
+
 pagina = st.sidebar.radio(
-    "Navegación", ["Inicio", "Artistas", "Álbumes", "Conciertos"]
+    "Navegación", ["Inicio", "Artistas", "Álbumes", "Conciertos", "Estadísticas"]
 )
 if pagina == "Inicio":
     pagina_inicio()
@@ -379,5 +445,7 @@ elif pagina == "Artistas":
     pagina_artistas()
 elif pagina == "Álbumes":
     pagina_albumes()
-else:
+elif pagina == "Conciertos":
     pagina_conciertos()
+else:
+    pagina_estadisticas()

@@ -25,6 +25,12 @@ from database.conciertos_db import (
 from models.album import Album
 from models.artista import Artista
 from models.concierto import Concierto
+from utils.analisis_datos import (
+    calcular_tendencia_central,
+    importar_albumes_desde_csv,
+    interpretar_tendencia_central,
+    leer_albumes_desde_base,
+)
 
 
 def ejecutar_pruebas():
@@ -63,6 +69,25 @@ def ejecutar_pruebas():
 
         assert eliminar_concierto(concierto_id)
         assert eliminar_album(album_id)
+
+        resultado_importacion = importar_albumes_desde_csv()
+        assert resultado_importacion == {"importados": 15, "omitidos": 0, "total": 15}
+        assert len(obtener_albumes()) == 15
+
+        segunda_importacion = importar_albumes_desde_csv()
+        assert segunda_importacion == {"importados": 0, "omitidos": 15, "total": 15}
+        assert len(obtener_albumes()) == 15
+
+        resultados = calcular_tendencia_central(leer_albumes_desde_base())
+        assert resultados["cantidad"] == 15
+        assert resultados["mediana"] == 2022
+        assert resultados["modas"] == [2020]
+        assert resultados["frecuencia_moda"] == 3
+        assert resultados["hay_moda_clara"]
+        assert "La moda es 2020" in interpretar_tendencia_central(resultados)
+
+        for album_importado in obtener_albumes():
+            assert eliminar_album(album_importado["id"])
         assert eliminar_artista(artista_id)
 
         for operacion in (
